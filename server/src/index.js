@@ -14,24 +14,14 @@ if (!process.env.JWT_SECRET || !process.env.MONGO_URI) {
 }
 
 const app = express();
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
-const corsOptions = {
-  origin(origin, callback) {
-    // Allow same-origin/non-browser calls (curl, server-to-server) and local Vite dev origins.
-    if (!origin) {
-      return callback(null, true);
-    }
-    if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error("Not allowed by CORS"));
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
-
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://deadline-guardian.vercel.app"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.get("/api/health", (_req, res) =>
@@ -43,9 +33,7 @@ app.get("/api/health", (_req, res) =>
 app.use("/api/auth", authRoutes);
 app.use("/api/deadlines", deadlineRoutes);
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+app.listen(PORT, () => console.log(`Server running on ${PORT}`));
 
 async function connectWithRetry() {
   try {
