@@ -16,13 +16,18 @@ if (!process.env.JWT_SECRET || !process.env.MONGO_URI) {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(
-  cors({
-    origin: ["http://localhost:5173", "https://deadline-guardian-rosy.vercel.app"],
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://deadline-guardian-rosy.vercel.app"
+  ]
+}));
+
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("Deadline Guardian API is running 🚀");
+});
 
 app.get("/api/health", (_req, res) =>
   res.json({
@@ -33,7 +38,13 @@ app.get("/api/health", (_req, res) =>
 app.use("/api/auth", authRoutes);
 app.use("/api/deadlines", deadlineRoutes);
 
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Server Error" });
+});
+
 app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+
 
 async function connectWithRetry() {
   try {
