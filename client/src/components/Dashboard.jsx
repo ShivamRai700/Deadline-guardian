@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 import SidebarNav from "./SidebarNav";
 
 const initialForm = {
@@ -11,6 +12,7 @@ const initialForm = {
 };
 
 export default function Dashboard({ onLogout }) {
+  const { name } = useAuth();
   const [deadlines, setDeadlines] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [filters, setFilters] = useState({ status: "all", priority: "all" });
@@ -191,6 +193,14 @@ export default function Dashboard({ onLogout }) {
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 {quickInsight}
               </div>
+              {name && (
+                <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
+                  <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 font-semibold text-xs">
+                    {name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="hidden sm:inline">{name}</span>
+                </div>
+              )}
               <button
                 onClick={() => {
                   setEditingId("");

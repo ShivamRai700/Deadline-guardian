@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 import SidebarNav from "./SidebarNav";
 
 export default function DeadlinesPage({ onLogout }) {
+  const { name } = useAuth();
   const [deadlines, setDeadlines] = useState([]);
   const [error, setError] = useState("");
 
@@ -38,9 +40,19 @@ export default function DeadlinesPage({ onLogout }) {
         <main className="space-y-5">
           {error && <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-2.5 text-sm text-rose-200">{error}</div>}
 
-          <section className="bg-slate-900/70 border border-slate-800 rounded-2xl px-4 md:px-5 py-4">
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight">All Deadlines</h1>
-            <p className="text-slate-400 text-sm mt-0.5">A complete list of your deadlines sorted by due date.</p>
+          <section className="bg-slate-900/70 border border-slate-800 rounded-2xl px-4 md:px-5 py-4 flex items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl md:text-2xl font-semibold tracking-tight">All Deadlines</h1>
+              <p className="text-slate-400 text-sm mt-0.5">A complete list of your deadlines sorted by due date.</p>
+            </div>
+            {name && (
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
+                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 font-semibold text-xs">
+                  {name.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:inline">{name}</span>
+              </div>
+            )}
           </section>
 
           <section className="grid gap-2.5">

@@ -5,6 +5,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [name, setName] = useState(localStorage.getItem("userName") || "");
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
@@ -15,17 +16,21 @@ export function AuthProvider({ children }) {
   const register = async (name, email, password) => {
     const { data } = await api.post("/auth/register", { name, email, password });
     localStorage.setItem("token", data.token);
+    localStorage.setItem("userName", name);
     setToken(data.token);
+    setName(name);
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("userName");
     setToken("");
+    setName("");
   };
 
   const value = useMemo(
-    () => ({ token, isAuthenticated: Boolean(token), login, register, logout }),
-    [token]
+    () => ({ token, name, isAuthenticated: Boolean(token), login, register, logout }),
+    [token, name]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
