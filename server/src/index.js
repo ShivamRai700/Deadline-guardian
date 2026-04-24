@@ -17,10 +17,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://deadline-guardian-rosy.vercel.app"
-  ]
+  origin: true
 }));
 
 app.use(express.json());
