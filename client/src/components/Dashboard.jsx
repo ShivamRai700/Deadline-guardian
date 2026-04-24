@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import api from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import SidebarNav from "./SidebarNav";
+import UserBadge from "./UserBadge";
 
 const initialForm = {
   title: "",
@@ -164,8 +165,8 @@ export default function Dashboard({ onLogout }) {
   const upcomingCount = classifiedDeadlines.filter((item) => item.urgency === "upcoming").length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 grid md:grid-cols-[220px_1fr] gap-5 md:gap-6">
+    <div className="min-h-screen overflow-x-hidden bg-slate-950 text-slate-100">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 p-4 md:p-6 lg:grid-cols-4 lg:gap-6">
         <SidebarNav
           onLogout={onLogout}
           onQuickAdd={() => {
@@ -176,31 +177,24 @@ export default function Dashboard({ onLogout }) {
           }}
         />
 
-        <main className="space-y-5">
+        <main className="min-w-0 space-y-6 lg:col-span-3">
           {error && (
             <section className="bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-2.5 text-sm text-rose-200">
               {error}
             </section>
           )}
 
-          <section className="bg-slate-900/70 border border-slate-800 rounded-2xl px-4 md:px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+          <section className="bg-slate-900/70 border border-slate-800 rounded-2xl px-4 py-4 md:px-5 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Deadline Dashboard</h1>
               <p className="text-slate-400 text-sm mt-0.5">Track progress, prioritize urgent work, and stay ahead.</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
               <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 {quickInsight}
               </div>
-              {name && (
-                <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
-                  <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 font-semibold text-xs">
-                    {name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="hidden sm:inline">{name}</span>
-                </div>
-              )}
+              <UserBadge />
               <button
                 onClick={() => {
                   setEditingId("");
@@ -215,35 +209,11 @@ export default function Dashboard({ onLogout }) {
             </div>
           </section>
 
-          <section className="grid sm:grid-cols-2 lg:grid-cols-6 gap-3">
-            <StatCard title="Total" value={stats.total} />
-            <StatCard title="Completed" value={stats.completed} />
-            <StatCard title="Pending" value={stats.pending} />
-            <StatCard title="Overdue" value={stats.overdue} tone="urgent" />
-            <StatCard title="Due Today" value={stats.dueToday} tone="today" />
-            <StatCard title="Due This Week" value={stats.dueThisWeek} tone="upcoming" />
-          </section>
-
           {urgentCount === 0 && (
             <section className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-2.5 text-sm text-emerald-200">
               No urgent deadlines. Great momentum.
             </section>
           )}
-
-          <section className="flex flex-wrap items-center gap-3">
-            <FilterGroup
-              title="Status"
-              values={["all", "pending", "done"]}
-              current={filters.status}
-              onChange={(value) => setFilters({ ...filters, status: value })}
-            />
-            <FilterGroup
-              title="Priority"
-              values={["all", "low", "medium", "high"]}
-              current={filters.priority}
-              onChange={(value) => setFilters({ ...filters, priority: value })}
-            />
-          </section>
 
           <section className="flex flex-wrap items-center gap-2">
             <FilterTab label={`Urgent (${urgentCount})`} active={activeTab === "urgent"} onClick={() => setActiveTab("urgent")} />
@@ -255,11 +225,11 @@ export default function Dashboard({ onLogout }) {
             <FilterTab label={`All (${classifiedDeadlines.length})`} active={activeTab === "all"} onClick={() => setActiveTab("all")} />
           </section>
 
-          <section className="grid gap-2.5">
+          <section className="grid gap-3">
             {visibleDeadlines.map((item) => (
               <article
                 key={item._id}
-                className={`bg-slate-900/90 border rounded-xl p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+                className={`rounded-xl border bg-slate-900/90 p-4 shadow-md shadow-slate-950/30 transition-all hover:-translate-y-0.5 hover:shadow-lg ${
                   item.urgency === "urgent"
                     ? "border-rose-500/40 shadow-rose-950/40"
                     : item.urgency === "upcoming"
@@ -267,20 +237,20 @@ export default function Dashboard({ onLogout }) {
                       : "border-slate-800 hover:border-slate-700 opacity-90"
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <h4 className="font-semibold text-base truncate">{item.title}</h4>
-                    <p className="text-slate-400 text-sm mt-0.5 leading-relaxed">{item.description || "No description"}</p>
-                    <p className="text-xs text-slate-400 mt-2">
+                    <h4 className="text-base font-semibold leading-tight text-slate-100">{item.title}</h4>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-400">{item.description || "No description"}</p>
+                    <p className="mt-3 text-xs text-slate-400">
                       Due {formatDate(item.deadlineDate)} - {dueLabel(item.dayDiff)}
                     </p>
-                    <div className="flex gap-2 mt-2 text-[11px]">
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
                       <Badge kind={item.priority}>{capitalize(item.priority)}</Badge>
                       <Badge kind={item.status}>{capitalize(item.status)}</Badge>
                       <Badge kind={item.urgency}>{capitalize(item.urgency)}</Badge>
                     </div>
                   </div>
-                  <div className="flex gap-1.5 shrink-0">
+                  <div className="flex flex-wrap gap-1.5 sm:shrink-0 sm:justify-end">
                     <button
                       className="text-xs bg-slate-800 hover:bg-slate-700 transition-colors px-2.5 py-1.5 rounded-lg"
                       onClick={() => startEdit(item)}
@@ -318,6 +288,34 @@ export default function Dashboard({ onLogout }) {
                 </button>
               </div>
             )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <FilterGroup
+                title="Status"
+                values={["all", "pending", "done"]}
+                current={filters.status}
+                onChange={(value) => setFilters({ ...filters, status: value })}
+                columns="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+              />
+              <FilterGroup
+                title="Priority"
+                values={["all", "low", "medium", "high"]}
+                current={filters.priority}
+                onChange={(value) => setFilters({ ...filters, priority: value })}
+                columns="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+              />
+            </div>
+          </section>
+
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            <StatCard title="Total" value={stats.total} />
+            <StatCard title="Completed" value={stats.completed} />
+            <StatCard title="Pending" value={stats.pending} />
+            <StatCard title="Overdue" value={stats.overdue} tone="urgent" />
+            <StatCard title="Due Today" value={stats.dueToday} tone="today" />
+            <StatCard title="Due This Week" value={stats.dueThisWeek} tone="upcoming" />
           </section>
         </main>
       </div>
@@ -465,9 +463,9 @@ function StatCard({ title, value, tone = "default" }) {
   };
 
   return (
-    <div className={`${toneClass[tone]} border rounded-xl p-3.5 shadow-md shadow-slate-950/30`}>
-      <p className="text-slate-400 text-xs">{title}</p>
-      <p className="text-2xl font-semibold mt-1">{value}</p>
+    <div className={`${toneClass[tone]} border rounded-xl p-3 shadow-md shadow-slate-950/30`}>
+      <p className="text-xs text-slate-400">{title}</p>
+      <p className="mt-1 text-lg font-semibold sm:text-xl">{value}</p>
     </div>
   );
 }
@@ -500,19 +498,19 @@ function FilterTab({ label, active, onClick }) {
   );
 }
 
-function FilterGroup({ title, values, current, onChange }) {
+function FilterGroup({ title, values, current, onChange, columns }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="space-y-2">
       <p className="text-[11px] uppercase tracking-wider text-slate-500">{title}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className={`grid gap-2 ${columns}`}>
         {values.map((value) => (
           <button
             key={value}
             onClick={() => onChange(value)}
-            className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+            className={`rounded-lg border px-3 py-2 text-center text-sm transition-colors ${
               current === value
-                ? "bg-indigo-600/20 border-indigo-500 text-indigo-200"
-                : "bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500"
+                ? "border-indigo-500 bg-indigo-600/20 text-indigo-200 shadow-sm shadow-indigo-950/40"
+                : "border-slate-700 bg-slate-800/80 text-slate-300 hover:border-slate-500 hover:bg-slate-800"
             }`}
           >
             {value === "all" ? "All" : capitalize(value)}

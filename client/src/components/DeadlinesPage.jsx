@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import api from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import SidebarNav from "./SidebarNav";
+import UserBadge from "./UserBadge";
 
 export default function DeadlinesPage({ onLogout }) {
   const { name } = useAuth();
@@ -33,38 +34,31 @@ export default function DeadlinesPage({ onLogout }) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 grid md:grid-cols-[220px_1fr] gap-5 md:gap-6">
+    <div className="min-h-screen overflow-x-hidden bg-slate-950 text-slate-100">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 p-4 md:p-6 lg:grid-cols-4 lg:gap-6">
         <SidebarNav onLogout={onLogout} />
 
-        <main className="space-y-5">
+        <main className="min-w-0 space-y-5 lg:col-span-3">
           {error && <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-2.5 text-sm text-rose-200">{error}</div>}
 
-          <section className="bg-slate-900/70 border border-slate-800 rounded-2xl px-4 md:px-5 py-4 flex items-center justify-between gap-3">
+          <section className="bg-slate-900/70 border border-slate-800 rounded-2xl px-4 md:px-5 py-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-xl md:text-2xl font-semibold tracking-tight">All Deadlines</h1>
               <p className="text-slate-400 text-sm mt-0.5">A complete list of your deadlines sorted by due date.</p>
             </div>
-            {name && (
-              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
-                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 font-semibold text-xs">
-                  {name.charAt(0).toUpperCase()}
-                </div>
-                <span className="hidden sm:inline">{name}</span>
-              </div>
-            )}
+            <UserBadge name={name} className="sm:ml-auto" />
           </section>
 
-          <section className="grid gap-2.5">
+          <section className="grid gap-3">
             {sorted.map((item) => (
-              <article key={item._id} className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5">
-                <div className="flex items-start justify-between gap-3">
+              <article key={item._id} className="rounded-xl border border-slate-800 bg-slate-900/90 p-4 shadow-md shadow-slate-950/30">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-base truncate">{item.title}</h3>
-                    <p className="text-slate-400 text-sm mt-0.5">{item.description || "No description"}</p>
-                    <p className="text-xs text-slate-400 mt-2">Due {formatDate(item.deadlineDate)}</p>
+                    <h3 className="text-base font-semibold leading-tight text-slate-100">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-400">{item.description || "No description"}</p>
+                    <p className="mt-3 text-xs text-slate-400">Due {formatDate(item.deadlineDate)}</p>
                   </div>
-                  <div className="flex gap-2 text-[11px]">
+                  <div className="flex flex-wrap gap-2 text-[11px] sm:shrink-0 sm:justify-end">
                     <Badge kind={item.priority}>{capitalize(item.priority)}</Badge>
                     <Badge kind={item.status}>{capitalize(item.status)}</Badge>
                   </div>

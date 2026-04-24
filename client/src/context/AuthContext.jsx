@@ -9,16 +9,21 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
+    const storedName = localStorage.getItem("userName") || "";
     localStorage.setItem("token", data.token);
     setToken(data.token);
+    if (storedName) {
+      setName(storedName);
+    }
   };
 
   const register = async (name, email, password) => {
     const { data } = await api.post("/auth/register", { name, email, password });
+    const resolvedName = data.name || name || localStorage.getItem("userName") || "";
     localStorage.setItem("token", data.token);
-    localStorage.setItem("userName", name);
+    localStorage.setItem("userName", resolvedName);
     setToken(data.token);
-    setName(name);
+    setName(resolvedName);
   };
 
   const logout = () => {

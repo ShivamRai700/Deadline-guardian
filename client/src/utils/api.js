@@ -22,6 +22,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
+      localStorage.removeItem("userName");
       if (typeof window !== "undefined" && !window.location.pathname.includes("login")) {
         window.location.reload();
       }
