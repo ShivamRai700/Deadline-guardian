@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import authRoutes from "./routes/authRoutes.js";
 import deadlineRoutes from "./routes/deadlineRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 import { connectDB } from "./config/db.js";
 
 dotenv.config();
@@ -33,8 +34,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -49,6 +48,7 @@ app.get("/api/health", (_req, res) =>
 );
 app.use("/api/auth", authRoutes);
 app.use("/api/deadlines", deadlineRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

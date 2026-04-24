@@ -19,6 +19,8 @@ export default function Dashboard({ onLogout }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState(null);
 
   const fetchDeadlines = async () => {
     try {
@@ -47,6 +49,7 @@ export default function Dashboard({ onLogout }) {
       setForm(initialForm);
       setEditingId("");
       setIsFormOpen(false);
+      setAiSuggestion(null);
       await fetchDeadlines();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save deadline");
@@ -64,6 +67,7 @@ export default function Dashboard({ onLogout }) {
       priority: item.priority,
       status: item.status,
     });
+    setAiSuggestion(null);
     setIsFormOpen(true);
   };
 
@@ -74,6 +78,28 @@ export default function Dashboard({ onLogout }) {
       await fetchDeadlines();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete deadline");
+    }
+  };
+
+  const handleAIClick = async () => {
+    if (!form.title.trim()) {
+      setError("Please enter a title first");
+      return;
+    }
+
+    try {
+      setAiLoading(true);
+      setError("");
+      const { data } = await api.post("/ai/priority", {
+        title: form.title,
+        description: form.description,
+      });
+      setAiSuggestion(data);
+    } catch (err) {
+      setError("AI suggestion unavailable");
+      setAiSuggestion(null);
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -143,6 +169,7 @@ export default function Dashboard({ onLogout }) {
           onQuickAdd={() => {
             setEditingId("");
             setForm(initialForm);
+            setAiSuggestion(null);
             setIsFormOpen(true);
           }}
         />
@@ -168,6 +195,7 @@ export default function Dashboard({ onLogout }) {
                 onClick={() => {
                   setEditingId("");
                   setForm(initialForm);
+                  setAiSuggestion(null);
                   setIsFormOpen(true);
                 }}
                 className="bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] transition-all px-4 py-2 rounded-lg text-sm font-semibold"
@@ -271,6 +299,7 @@ export default function Dashboard({ onLogout }) {
                   onClick={() => {
                     setEditingId("");
                     setForm(initialForm);
+                    setAiSuggestion(null);
                     setIsFormOpen(true);
                   }}
                   className="mt-4 bg-indigo-600 hover:bg-indigo-500 transition-colors px-4 py-2 rounded-lg text-sm font-semibold"
@@ -294,6 +323,7 @@ export default function Dashboard({ onLogout }) {
                   setIsFormOpen(false);
                   setEditingId("");
                   setForm(initialForm);
+                  setAiSuggestion(null);
                 }}
               >
                 Close
@@ -320,6 +350,57 @@ export default function Dashboard({ onLogout }) {
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
+              <button
+                type="button"
+                onClick={handleAIClick}
+                disabled={aiLoading || !form.title.trim()}
+                className="md:col-span-2 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors px-4 py-2.5 rounded-xl text-sm font-semibold"
+              >
+                {aiLoading ? "✨ Analyzing..." : "✨ AI Priority Assistant"}
+              </button>
+              {aiSuggestion && (
+                <div className="md:col-span-2 bg-purple-950/40 border border-purple-500/30 rounded-xl p-3.5 space-y-2">
+                  <p className="text-xs uppercase tracking-wider text-purple-300 font-semibold">AI Suggestion (Preview)</p>
+                  <div className="space-y-1.5 text-sm">
+                    <div>
+                      <p className="text-slate-400 text-xs">Improved Title:</p>
+                      <p className="text-purple-100 font-medium">{aiSuggestion.improvedTitle}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-xs">Description:</p>
+                      <p className="text-purple-100">{aiSuggestion.description}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-xs">Suggested Priority:</p>
+                      <p className="text-purple-100 font-medium capitalize">{aiSuggestion.priority}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm({
+                          ...form,
+                          title: aiSuggestion.improvedTitle,
+                          description: aiSuggestion.description,
+                          priority: aiSuggestion.priority,
+                        });
+                        setAiSuggestion(null);
+                      }}
+                      className="text-xs bg-purple-600 hover:bg-purple-500 transition-colors px-3 py-1.5 rounded-lg"
+                    >
+                      Apply All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiSuggestion(null)}
+                      className="text-xs bg-slate-700 hover:bg-slate-600 transition-colors px-3 py-1.5 rounded-lg"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
               <select
                 className="bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2.5 outline-none transition-all focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40"
                 value={form.priority}
