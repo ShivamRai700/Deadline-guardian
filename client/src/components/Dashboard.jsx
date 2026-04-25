@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../utils/api";
-import { useAuth } from "../context/AuthContext";
 import SidebarNav from "./SidebarNav";
 import UserBadge from "./UserBadge";
+import DeadlineNotificationBell from "./DeadlineNotificationBell";
+import useDeadlineNotifications from "../hooks/useDeadlineNotifications";
+import {
+  formatDeadlineDateTime,
+  formatDeadlineInputValue,
+  formatTimeUntilDeadline,
+  getDaysDiff,
+  getDeadlineAlertLevel,
+  getUrgencyBucket,
+  normalizeDateOnly,
+  toDeadlineApiValue,
+} from "../utils/deadlineDates";
 
 const initialForm = {
   title: "",
@@ -13,8 +24,8 @@ const initialForm = {
 };
 
 export default function Dashboard({ onLogout }) {
-  const { name } = useAuth();
   const [deadlines, setDeadlines] = useState([]);
+  const [allDeadlines, setAllDeadlines] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [filters, setFilters] = useState({ status: "all", priority: "all" });
   const [editingId, setEditingId] = useState("");
@@ -35,25 +46,51 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
+  const fetchAllDeadlines = async () => {
+    try {
+      const { data } = await api.get("/deadlines");
+      setAllDeadlines(data);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load deadlines");
+    }
+  };
+
   useEffect(() => {
     fetchDeadlines();
   }, [filters.status, filters.priority]);
 
+  useEffect(() => {
+    fetchAllDeadlines();
+  }, []);
+
+  const { upcomingCount: upcomingReminderCount, upcomingTasks, notificationsSupported, permission, canRequestPermission, requestPermission } =
+    useDeadlineNotifications(allDeadlines);
+
   const submit = async (e) => {
     e.preventDefault();
+
+    // Convert the datetime-local field into a full ISO timestamp before sending it to the API.
+    const deadlineValue = toDeadlineApiValue(form.deadlineDate);
+    if (!deadlineValue) {
+      setError("Please choose a valid deadline date and time");
+      return;
+    }
+
     try {
       setIsSaving(true);
       setError("");
+      const payload = { ...form, deadlineDate: deadlineValue };
+
       if (editingId) {
-        await api.put(`/deadlines/${editingId}`, form);
+        await api.put(`/deadlines/${editingId}`, payload);
       } else {
-        await api.post("/deadlines", form);
+        await api.post("/deadlines", payload);
       }
       setForm(initialForm);
       setEditingId("");
       setIsFormOpen(false);
       setAiSuggestion(null);
-      await fetchDeadlines();
+      await Promise.all([fetchDeadlines(), fetchAllDeadlines()]);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save deadline");
     } finally {
@@ -66,7 +103,7 @@ export default function Dashboard({ onLogout }) {
     setForm({
       title: item.title,
       description: item.description || "",
-      deadlineDate: item.deadlineDate.slice(0, 10),
+      deadlineDate: formatDeadlineInputValue(item.deadlineDate),
       priority: item.priority,
       status: item.status,
     });
@@ -78,7 +115,7 @@ export default function Dashboard({ onLogout }) {
     try {
       setError("");
       await api.delete(`/deadlines/${id}`);
-      await fetchDeadlines();
+      await Promise.all([fetchDeadlines(), fetchAllDeadlines()]);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete deadline");
     }
@@ -113,6 +150,7 @@ export default function Dashboard({ onLogout }) {
       return {
         ...item,
         dayDiff,
+        deadlineAlertLevel: getDeadlineAlertLevel(item),
         urgency: getUrgencyBucket(item, dayDiff),
       };
     });
@@ -194,6 +232,14 @@ export default function Dashboard({ onLogout }) {
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 {quickInsight}
               </div>
+              <DeadlineNotificationBell
+                upcomingCount={upcomingReminderCount}
+                upcomingTasks={upcomingTasks}
+                notificationsSupported={notificationsSupported}
+                permission={permission}
+                canRequestPermission={canRequestPermission}
+                onRequestPermission={requestPermission}
+              />
               <UserBadge />
               <button
                 onClick={() => {
@@ -230,11 +276,15 @@ export default function Dashboard({ onLogout }) {
               <article
                 key={item._id}
                 className={`rounded-xl border bg-slate-900/90 p-4 shadow-md shadow-slate-950/30 transition-all hover:-translate-y-0.5 hover:shadow-lg ${
-                  item.urgency === "urgent"
-                    ? "border-rose-500/40 shadow-rose-950/40"
-                    : item.urgency === "upcoming"
-                      ? "border-cyan-500/20 hover:border-cyan-500/40"
-                      : "border-slate-800 hover:border-slate-700 opacity-90"
+                  item.deadlineAlertLevel === "withinHour"
+                    ? "border-rose-500/50 shadow-rose-950/50"
+                    : item.deadlineAlertLevel === "withinDay"
+                      ? "border-amber-500/35 shadow-amber-950/25"
+                      : item.urgency === "urgent"
+                        ? "border-rose-500/40 shadow-rose-950/40"
+                        : item.urgency === "upcoming"
+                          ? "border-cyan-500/20 hover:border-cyan-500/40"
+                          : "border-slate-800 hover:border-slate-700 opacity-90"
                 }`}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -242,12 +292,14 @@ export default function Dashboard({ onLogout }) {
                     <h4 className="text-base font-semibold leading-tight text-slate-100">{item.title}</h4>
                     <p className="mt-1 text-sm leading-relaxed text-slate-400">{item.description || "No description"}</p>
                     <p className="mt-3 text-xs text-slate-400">
-                      Due {formatDate(item.deadlineDate)} - {dueLabel(item.dayDiff)}
+                      Due {formatDeadlineDateTime(item.deadlineDate)} - {formatTimeUntilDeadline(item.deadlineDate)}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
                       <Badge kind={item.priority}>{capitalize(item.priority)}</Badge>
                       <Badge kind={item.status}>{capitalize(item.status)}</Badge>
                       <Badge kind={item.urgency}>{capitalize(item.urgency)}</Badge>
+                      {item.deadlineAlertLevel === "withinDay" && <Badge kind="withinDay">Next 24h</Badge>}
+                      {item.deadlineAlertLevel === "withinHour" && <Badge kind="withinHour">Next 1h</Badge>}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5 sm:shrink-0 sm:justify-end">
@@ -346,7 +398,7 @@ export default function Dashboard({ onLogout }) {
                 required
               />
               <input
-                type="date"
+                type="datetime-local"
                 className="bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2.5 outline-none transition-all focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40"
                 value={form.deadlineDate}
                 onChange={(e) => setForm({ ...form, deadlineDate: e.target.value })}
@@ -480,6 +532,8 @@ function Badge({ children, kind }) {
     urgent: "bg-rose-500/15 text-rose-200 border-rose-500/30",
     upcoming: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
     later: "bg-slate-700/70 text-slate-300 border-slate-600",
+    withinDay: "bg-amber-500/15 text-amber-200 border-amber-500/30",
+    withinHour: "bg-rose-500/15 text-rose-200 border-rose-500/30",
   };
 
   return <span className={`px-2 py-1 rounded-full border ${styles[kind] || "bg-slate-800 border-slate-700"}`}>{children}</span>;
@@ -519,49 +573,6 @@ function FilterGroup({ title, values, current, onChange, columns }) {
       </div>
     </div>
   );
-}
-
-function normalizeDateOnly(value) {
-  if (typeof value === "string") {
-    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (match) {
-      const [, y, m, d] = match;
-      return new Date(Number(y), Number(m) - 1, Number(d));
-    }
-  }
-
-  const parsed = new Date(value);
-  return new Date(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate());
-}
-
-function getDaysDiff(dateValue, baseDate = normalizeDateOnly(new Date())) {
-  const target = normalizeDateOnly(dateValue);
-  return Math.round((target - baseDate) / 86400000);
-}
-
-function getUrgencyBucket(item, dayDiff) {
-  if (item.status === "done") return "done";
-  if (dayDiff <= 2) return "urgent";
-  if (dayDiff >= 3 && dayDiff <= 7) return "upcoming";
-  return "later";
-}
-
-function dueLabel(diff) {
-  if (diff < 0) {
-    const days = Math.abs(diff);
-    return `Overdue by ${days} day${days > 1 ? "s" : ""}`;
-  }
-  if (diff === 0) {
-    return "Due Today";
-  }
-  if (diff === 1) {
-    return "Due in 1 day";
-  }
-  return `Due in ${diff} days`;
-}
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
 function capitalize(text) {

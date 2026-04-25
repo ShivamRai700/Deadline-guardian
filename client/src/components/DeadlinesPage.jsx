@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../utils/api";
-import { useAuth } from "../context/AuthContext";
 import SidebarNav from "./SidebarNav";
 import UserBadge from "./UserBadge";
+import { formatDeadlineDateTime, formatTimeUntilDeadline, getDeadlineAlertLevel } from "../utils/deadlineDates";
 
 export default function DeadlinesPage({ onLogout }) {
-  const { name } = useAuth();
   const [deadlines, setDeadlines] = useState([]);
   const [error, setError] = useState("");
 
@@ -46,25 +45,42 @@ export default function DeadlinesPage({ onLogout }) {
               <h1 className="text-xl md:text-2xl font-semibold tracking-tight">All Deadlines</h1>
               <p className="text-slate-400 text-sm mt-0.5">A complete list of your deadlines sorted by due date.</p>
             </div>
-            <UserBadge name={name} className="sm:ml-auto" />
+            <UserBadge className="sm:ml-auto" />
           </section>
 
           <section className="grid gap-3">
-            {sorted.map((item) => (
-              <article key={item._id} className="rounded-xl border border-slate-800 bg-slate-900/90 p-4 shadow-md shadow-slate-950/30">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <h3 className="text-base font-semibold leading-tight text-slate-100">{item.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-400">{item.description || "No description"}</p>
-                    <p className="mt-3 text-xs text-slate-400">Due {formatDate(item.deadlineDate)}</p>
+            {sorted.map((item) => {
+              const deadlineAlertLevel = getDeadlineAlertLevel(item);
+
+              return (
+                <article
+                  key={item._id}
+                  className={`rounded-xl border bg-slate-900/90 p-4 shadow-md shadow-slate-950/30 ${
+                    deadlineAlertLevel === "withinHour"
+                      ? "border-rose-500/45"
+                      : deadlineAlertLevel === "withinDay"
+                        ? "border-amber-500/35"
+                        : "border-slate-800"
+                  }`}
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <h3 className="text-base font-semibold leading-tight text-slate-100">{item.title}</h3>
+                      <p className="mt-1 text-sm leading-relaxed text-slate-400">{item.description || "No description"}</p>
+                      <p className="mt-3 text-xs text-slate-400">
+                        Due {formatDeadlineDateTime(item.deadlineDate)} - {formatTimeUntilDeadline(item.deadlineDate)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[11px] sm:shrink-0 sm:justify-end">
+                      <Badge kind={item.priority}>{capitalize(item.priority)}</Badge>
+                      <Badge kind={item.status}>{capitalize(item.status)}</Badge>
+                      {deadlineAlertLevel === "withinDay" && <Badge kind="withinDay">Next 24h</Badge>}
+                      {deadlineAlertLevel === "withinHour" && <Badge kind="withinHour">Next 1h</Badge>}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 text-[11px] sm:shrink-0 sm:justify-end">
-                    <Badge kind={item.priority}>{capitalize(item.priority)}</Badge>
-                    <Badge kind={item.status}>{capitalize(item.status)}</Badge>
-                  </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
 
             {!sorted.length && (
               <div className="bg-slate-900 border border-dashed border-slate-700 rounded-xl p-10 text-center">
@@ -86,12 +102,10 @@ function Badge({ children, kind }) {
     low: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
     pending: "bg-sky-500/15 text-sky-200 border-sky-500/30",
     done: "bg-violet-500/15 text-violet-200 border-violet-500/30",
+    withinDay: "bg-amber-500/15 text-amber-200 border-amber-500/30",
+    withinHour: "bg-rose-500/15 text-rose-200 border-rose-500/30",
   };
   return <span className={`px-2 py-1 rounded-full border ${styles[kind] || "bg-slate-800 border-slate-700"}`}>{children}</span>;
-}
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
 function capitalize(text) {

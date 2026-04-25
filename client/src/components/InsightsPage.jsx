@@ -3,6 +3,7 @@ import api from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import SidebarNav from "./SidebarNav";
 import UserBadge from "./UserBadge";
+import { getDaysDiff } from "../utils/deadlineDates";
 
 export default function InsightsPage({ onLogout }) {
   const { name } = useAuth();
@@ -76,12 +77,5 @@ function InsightCard({ label, value, tone = "default" }) {
 }
 
 function dayDiff(dateValue) {
-  const d = normalizeDateOnly(new Date(dateValue));
-  const t = normalizeDateOnly(new Date());
-  return Math.round((d - t) / 86400000);
-}
-
-function normalizeDateOnly(value) {
-  const parsed = new Date(value);
-  return new Date(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate());
+  return getDaysDiff(dateValue);
 }
