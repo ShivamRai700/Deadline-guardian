@@ -4,6 +4,7 @@ import SidebarNav from "./SidebarNav";
 import UserBadge from "./UserBadge";
 import DeadlineNotificationBell from "./DeadlineNotificationBell";
 import useDeadlineNotifications from "../hooks/useDeadlineNotifications";
+import CalendarView from "./CalendarView";
 import {
   formatDeadlineDateTime,
   formatDeadlineInputValue,
@@ -30,6 +31,7 @@ export default function Dashboard({ onLogout }) {
   const [filters, setFilters] = useState({ status: "all", priority: "all" });
   const [editingId, setEditingId] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [viewMode, setViewMode] = useState("list"); // "list" or "calendar"
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -269,78 +271,110 @@ export default function Dashboard({ onLogout }) {
               onClick={() => setActiveTab("upcoming")}
             />
             <FilterTab label={`All (${classifiedDeadlines.length})`} active={activeTab === "all"} onClick={() => setActiveTab("all")} />
-          </section>
-
-          <section className="grid gap-3">
-            {visibleDeadlines.map((item) => (
-              <article
-                key={item._id}
-                className={`rounded-xl border bg-slate-900/90 p-4 shadow-md shadow-slate-950/30 transition-all hover:-translate-y-0.5 hover:shadow-lg ${
-                  item.deadlineAlertLevel === "withinHour"
-                    ? "border-rose-500/50 shadow-rose-950/50"
-                    : item.deadlineAlertLevel === "withinDay"
-                      ? "border-amber-500/35 shadow-amber-950/25"
-                      : item.urgency === "urgent"
-                        ? "border-rose-500/40 shadow-rose-950/40"
-                        : item.urgency === "upcoming"
-                          ? "border-cyan-500/20 hover:border-cyan-500/40"
-                          : "border-slate-800 hover:border-slate-700 opacity-90"
+            <div className="ml-auto flex gap-2 border-l border-slate-700 pl-2">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                  viewMode === "list"
+                    ? "bg-indigo-500/20 border-indigo-500 text-indigo-200"
+                    : "bg-slate-900 border-slate-700 hover:border-slate-500"
                 }`}
               >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <h4 className="text-base font-semibold leading-tight text-slate-100">{item.title}</h4>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-400">{item.description || "No description"}</p>
-                    <p className="mt-3 text-xs text-slate-400">
-                      Due {formatDeadlineDateTime(item.deadlineDate)} - {formatTimeUntilDeadline(item.deadlineDate)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-                      <Badge kind={item.priority}>{capitalize(item.priority)}</Badge>
-                      <Badge kind={item.status}>{capitalize(item.status)}</Badge>
-                      <Badge kind={item.urgency}>{capitalize(item.urgency)}</Badge>
-                      {item.deadlineAlertLevel === "withinDay" && <Badge kind="withinDay">Next 24h</Badge>}
-                      {item.deadlineAlertLevel === "withinHour" && <Badge kind="withinHour">Next 1h</Badge>}
+                📋 List
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                  viewMode === "calendar"
+                    ? "bg-indigo-500/20 border-indigo-500 text-indigo-200"
+                    : "bg-slate-900 border-slate-700 hover:border-slate-500"
+                }`}
+              >
+                📅 Calendar
+              </button>
+            </div>
+          </section>
+
+          {viewMode === "calendar" ? (
+            <section className="rounded-2xl border border-slate-800 bg-slate-900/70">
+              <CalendarView
+                deadlines={allDeadlines}
+                onEditTask={(task) => startEdit(task)}
+                onDeleteTask={(id) => remove(id)}
+              />
+            </section>
+          ) : (
+            <section className="grid gap-3">
+              {visibleDeadlines.map((item) => (
+                <article
+                  key={item._id}
+                  className={`rounded-xl border bg-slate-900/90 p-4 shadow-md shadow-slate-950/30 transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+                    item.deadlineAlertLevel === "withinHour"
+                      ? "border-rose-500/50 shadow-rose-950/50"
+                      : item.deadlineAlertLevel === "withinDay"
+                        ? "border-amber-500/35 shadow-amber-950/25"
+                        : item.urgency === "urgent"
+                          ? "border-rose-500/40 shadow-rose-950/40"
+                          : item.urgency === "upcoming"
+                            ? "border-cyan-500/20 hover:border-cyan-500/40"
+                            : "border-slate-800 hover:border-slate-700 opacity-90"
+                  }`}
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <h4 className="text-base font-semibold leading-tight text-slate-100">{item.title}</h4>
+                      <p className="mt-1 text-sm leading-relaxed text-slate-400">{item.description || "No description"}</p>
+                      <p className="mt-3 text-xs text-slate-400">
+                        Due {formatDeadlineDateTime(item.deadlineDate)} - {formatTimeUntilDeadline(item.deadlineDate)}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                        <Badge kind={item.priority}>{capitalize(item.priority)}</Badge>
+                        <Badge kind={item.status}>{capitalize(item.status)}</Badge>
+                        <Badge kind={item.urgency}>{capitalize(item.urgency)}</Badge>
+                        {item.deadlineAlertLevel === "withinDay" && <Badge kind="withinDay">Next 24h</Badge>}
+                        {item.deadlineAlertLevel === "withinHour" && <Badge kind="withinHour">Next 1h</Badge>}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 sm:shrink-0 sm:justify-end">
+                      <button
+                        className="text-xs bg-slate-800 hover:bg-slate-700 transition-colors px-2.5 py-1.5 rounded-lg"
+                        onClick={() => startEdit(item)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="text-xs bg-red-600/80 hover:bg-red-500/90 transition-colors px-2.5 py-1.5 rounded-lg"
+                        onClick={() => remove(item._id)}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 sm:shrink-0 sm:justify-end">
-                    <button
-                      className="text-xs bg-slate-800 hover:bg-slate-700 transition-colors px-2.5 py-1.5 rounded-lg"
-                      onClick={() => startEdit(item)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="text-xs bg-red-600/80 hover:bg-red-500/90 transition-colors px-2.5 py-1.5 rounded-lg"
-                      onClick={() => remove(item._id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                </article>
+              ))}
+              {!visibleDeadlines.length && (
+                <div className="bg-slate-900 border border-dashed border-slate-700 rounded-xl p-10 text-center">
+                  <p className="text-slate-200 font-medium">{classifiedDeadlines.length ? "No tasks in this view" : "No deadlines yet"}</p>
+                  <p className="text-slate-400 text-sm mt-1">
+                    {classifiedDeadlines.length
+                      ? "Try another tab or update filters."
+                      : "Create your first deadline to start tracking progress."}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setEditingId("");
+                      setForm(initialForm);
+                      setAiSuggestion(null);
+                      setIsFormOpen(true);
+                    }}
+                    className="mt-4 bg-indigo-600 hover:bg-indigo-500 transition-colors px-4 py-2 rounded-lg text-sm font-semibold"
+                  >
+                    Add deadline
+                  </button>
                 </div>
-              </article>
-            ))}
-            {!visibleDeadlines.length && (
-              <div className="bg-slate-900 border border-dashed border-slate-700 rounded-xl p-10 text-center">
-                <p className="text-slate-200 font-medium">{classifiedDeadlines.length ? "No tasks in this view" : "No deadlines yet"}</p>
-                <p className="text-slate-400 text-sm mt-1">
-                  {classifiedDeadlines.length
-                    ? "Try another tab or update filters."
-                    : "Create your first deadline to start tracking progress."}
-                </p>
-                <button
-                  onClick={() => {
-                    setEditingId("");
-                    setForm(initialForm);
-                    setAiSuggestion(null);
-                    setIsFormOpen(true);
-                  }}
-                  className="mt-4 bg-indigo-600 hover:bg-indigo-500 transition-colors px-4 py-2 rounded-lg text-sm font-semibold"
-                >
-                  Add deadline
-                </button>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
 
           <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
             <div className="grid gap-4 md:grid-cols-2">
