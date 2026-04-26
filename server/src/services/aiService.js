@@ -3,6 +3,7 @@ const GEMINI_API_URL =
 
 export async function getAIPrioritySuggestion(title, description) {
   const apiKey = process.env.AI_API_KEY;
+  console.log("API KEY:", apiKey);
 
   if (!apiKey) {
     console.warn("AI_API_KEY not configured, returning fallback");
